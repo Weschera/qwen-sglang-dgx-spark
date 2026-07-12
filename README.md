@@ -9,7 +9,7 @@ A working recipe for serving **Qwen3.6 NVFP4 + MTP** — both the **27B** (dense
 >
 > **With caching disabled on both engines, they are equivalent** at 64k-context concurrency on GB10 (SGLang 25.7/28.6/29.8 tok/s at 2/8/32 agents vs vLLM 26.8/30.0/31.3 — within noise; first token ~4.5 min at 32 agents on both). Full corrected data in [`results/results.csv`](results/results.csv).
 >
-> The real, useful finding is below: **prefix caching is the entire game for concurrent long-context serving** — and SGLang ships with it on by default.
+> The real, useful finding is below: **prefix caching is the entire game for concurrent long-context serving.** Both engines ship it on by default; SGLang's implementation delivers ~25–45% more under shared-context load.
 
 ---
 
@@ -44,34 +44,47 @@ Wait for `http://localhost:8891/health` → 200 (~6 min boot, roughly constant a
 
 ## What we measured (35B MoE, 64k-token prompts, 1× Spark)
 
-### 1. With caching disabled on BOTH engines, SGLang and vLLM are equivalent
+### 1. With caching disabled on BOTH engines, SGLang and vLLM are equivalent — at every point
 
-| agents @64k | SGLang (no radix cache) | vLLM (no prefix cache) |
-|---:|---:|---:|
-| 1 (single stream) | 92.2 tok/s | 93.7 tok/s |
-| 2 | 25.7 | 26.8 |
-| 8 | 28.6 | 30.0 |
-| 32 | 29.8 · TTFT ~4.5 min | 31.3 · TTFT ~4.4 min |
+| agents | 64k: SGLang / vLLM | 256k: SGLang / vLLM |
+|---:|---|---|
+| 1 (single stream) | 92.2 / 93.7 tok/s | 65.4 / 70.9 |
+| 2 | 25.7 / 26.8 | 3.4 / 3.7 |
+| 8 | 28.6 / 30.0 | 3.2 / 3.3 |
+| 32 | 29.8 / 31.3 (TTFT ~4.5 min both) | — |
+| 64 | 29.2 / 31.4 — **both completed exactly 57/64** | — |
 
-Both engines process concurrent **unique** long prefills essentially serially on GB10; aggregate flatlines around ~30 tok/s and first-token latency grows linearly with the queue. (vLLM verified on 0.23.1 **and** 0.25.0 — identical. vLLM's V1 engine also hard-rejects `--max-num-partial-prefills` >1: `NotImplementedError`, tracked in [vllm#14003](https://github.com/vllm-project/vllm/issues/14003).)
+Both engines process concurrent **unique** long prefills essentially serially on GB10; aggregate flatlines (~30 @64k, ~3.5 @256k) and first-token latency grows linearly with the queue. (vLLM verified on 0.23.1 **and** 0.25.0 — identical. vLLM's V1 engine also hard-rejects `--max-num-partial-prefills` >1: `NotImplementedError`, [vllm#14003](https://github.com/vllm-project/vllm/issues/14003) — practically moot, since SGLang behaves the same.)
 
-**Practical takeaway:** on one Spark, a fleet of agents with fully *distinct* long contexts is prefill-compute-bound no matter the engine. Plan for it: stagger agent starts, or share context (below).
+**Practical takeaway:** a fleet of agents with fully *distinct* long contexts is prefill-compute-bound no matter the engine. Plan for it: stagger agent starts, or share context (below).
 
-### 2. Prefix caching is the entire game — and SGLang ships with it ON
+### 2. Prefix caching is the entire game — both ship it ON; SGLang's works better
 
-Same test, but letting SGLang's radix cache work (streams share the prompt):
+Same test, but with each engine's cache enabled (streams share the prompt prefix). **Both engines default to cache ON** (vLLM `enable_prefix_caching: bool = True`; SGLang radix cache) — a stock deployment gets this automatically:
 
-| agents @64k, shared prefix | SGLang (radix cache, default) |
-|---:|---:|
-| 32 | **324 tok/s** · TTFT ~6s |
-| 64 | **332 tok/s** · all 64 complete |
+| agents, shared prefix | 64k: SGLang / vLLM | 256k: SGLang / vLLM |
+|---:|---|---|
+| 2 | — | 85 / 64 |
+| 8 | — | **134 / 93** (TTFT 8s vs 22s) |
+| 32 | **324 / 262** (TTFT 6s vs 18s) | — |
+| 64 | 332 / — | — |
 
-That's **~10× the no-cache number**, from caching alone. If your agents share a large system prompt / document corpus (most real agent fleets do), prefix reuse is worth more than any other serving knob at long context. vLLM has prefix caching too (`--enable-prefix-caching`) — we disabled it for the original flawed test; enable it in production for the same class of win.
+Two findings: caching is worth **~10× over no-cache** on either engine, and **SGLang's radix cache outperforms vLLM's prefix cache by ~25–45%** at both depths, with ~3× faster first token. (Cache-on cells are 1–2 runs each; treat the gap as "~20–45% in our runs.")
 
-### 3. Honest caveats
-- The dramatic numbers in row 2 require **shared prompt prefixes**. Fully independent contexts get row 1.
-- Quality is engine-neutral in our separate evals (TrueScore 85.4 SGLang vs 84.1 vLLM on the 27B; within noise across engines).
-- Short context (1k), 16 agents: vLLM 450 vs SGLang 427 tok/s — vLLM slightly ahead there.
+### 3. When the cache actually pays (this determines everything)
+
+Prefix caching matches **identical prompt *beginnings*, token-for-token** — not "similar" content:
+- ✅ Pays: same system prompt on every agent · same document pasted first with different questions after · shared history that branches late
+- ❌ Pays nothing: 64 different documents (90% similar content ≠ identical prefix) · same document but prompts *start* differently — one different token at the top kills the match
+
+**The one tip worth the whole README: structure prompts shared-first, unique-last.** System prompt + tools + docs at the top, per-agent task at the bottom → your fleet rides the cache (30 → 300+ tok/s at 64k). Reverse the order → the slow tie, engine irrelevant.
+
+### 4. Honest caveats
+- Cache numbers require **shared prefixes**; fully independent contexts get table 1.
+- Quality is engine-neutral (TrueScore 85.4 SGLang vs 84.1 vLLM on the 27B, within noise).
+- Short context (1k, 16 agents): vLLM 450 vs SGLang 389 (cache-off) — vLLM ahead there.
+- Honest first-token at 1k, cache off: SGLang 865ms (27B) / 222ms (35B) vs vLLM ~1030ms / 223ms — parity-to-modest, nothing dramatic.
+- **Benchmark with caches off; deploy with caches on.** If your load test repeats prompts with cache enabled, you're measuring the cache.
 
 ### Pinned images
 | Engine | Image | Digest |

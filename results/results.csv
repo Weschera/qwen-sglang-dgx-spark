@@ -1,16 +1,25 @@
 engine,cache,context,agents,agg_decode_tps,ttft_p50_ms,completed,notes
-sglang-v0.5.15,radix-DISABLED,64k,2,25.7,17400,2/2,fair
-sglang-v0.5.15,radix-DISABLED,64k,8,28.6,78994,8/8,fair
-sglang-v0.5.15,radix-DISABLED,64k,32,29.8,267061,32/32,fair
-vllm-0.23.1,prefix-cache-off,64k,2,26.8,16628,2/2,fair
-vllm-0.23.1,prefix-cache-off,64k,8,30.0,77608,8/8,fair
-vllm-0.23.1,prefix-cache-off,64k,32,31.3,263263,32/32,fair
-vllm-0.25.0,prefix-cache-off,64k,2,26.4,17021,2/2,fair (NNNtrance GB10 build)
-vllm-0.25.0,prefix-cache-off,64k,8,29.3,79918,8/8,fair
-vllm-0.25.0,prefix-cache-off,64k,32,30.6,269468,32/32,fair
-sglang-v0.5.15,radix-ON-default,64k,32,324.4,5958,32/32,SHARED-PREFIX ONLY (identical prompt across streams; cache hit)
-sglang-v0.5.15,radix-ON-default,64k,64,331.8,11921,64/64,SHARED-PREFIX ONLY
-sglang-v0.5.15,radix-ON-default,256k,8,133.8,8190,8/8,SHARED-PREFIX ONLY
-vllm-0.23.1,prefix-cache-off,256k,2,3.7,133946,2/2,fair
-vllm-0.23.1,prefix-cache-off,256k,4,3.7,401140,4/4,fair
-vllm-0.23.1,prefix-cache-off,256k,8,3.3,400422,6/8,fair; 2 timed out
+sglang-v0.5.15,OFF,64k,1,92.2,16369,1/1,single-stream decode tok/s
+vllm-0.23.1,OFF,64k,1,93.7,14728,1/1,
+sglang-v0.5.15,OFF,64k,2,25.7,17400,2/2,
+vllm-0.23.1,OFF,64k,2,26.8,16628,2/2,
+sglang-v0.5.15,OFF,64k,8,28.6,78994,8/8,
+vllm-0.23.1,OFF,64k,8,30.0,77608,8/8,
+sglang-v0.5.15,OFF,64k,32,29.8,267061,32/32,
+vllm-0.23.1,OFF,64k,32,31.3,263263,32/32,
+vllm-0.25.0,OFF,64k,32,30.6,269468,32/32,NNNtrance GB10 build
+sglang-v0.5.15,OFF,64k,64,29.2,457247,57/64,7 timed out
+vllm-0.23.1,OFF,64k,64,31.4,453936,57/64,7 timed out
+sglang-v0.5.15,OFF,256k,1,65.4,145634,1/1,re-verified (first run 24.1 was one-off)
+vllm-0.23.1,OFF,256k,1,70.9,131836,1/1,
+sglang-v0.5.15,OFF,256k,2,3.4,147268,2/2,
+vllm-0.23.1,OFF,256k,2,3.7,133946,2/2,
+sglang-v0.5.15,OFF,256k,8,3.2,433943,8/8,
+vllm-0.23.1,OFF,256k,8,3.3,400422,6/8,2 timed out
+sglang-v0.5.15,ON(radix),64k,32,324.4,5958,32/32,shared prefix only
+vllm-0.23.1,ON(prefix),64k,32,261.6,17890,32/32,shared prefix only
+sglang-v0.5.15,ON(radix),64k,64,331.8,11921,64/64,shared prefix only
+sglang-v0.5.15,ON(radix),256k,2,85.3,1806,2/2,shared prefix only
+vllm-0.23.1,ON(prefix),256k,2,63.8,6314,2/2,shared prefix only
+sglang-v0.5.15,ON(radix),256k,8,133.8,8190,8/8,shared prefix only
+vllm-0.23.1,ON(prefix),256k,8,92.6,22534,8/8,shared prefix only
