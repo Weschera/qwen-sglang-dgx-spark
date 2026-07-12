@@ -8,6 +8,7 @@
 #    A 64k+ prefill batch exhausts GB10 unified memory and HANGS THE NODE (hard power cycle to recover).
 set -eu
 MODELS="${MODELS:-/home/$USER/models}"
+MODEL="${MODEL:-qwen36-35b-nvfp4}"   # or qwen36-27b-nvfp4
 MML="${MML:-69632}"
 PORT="${PORT:-8891}"
 IMG="eugr/spark-vllm:latest"   # sha256:e557b53d549fdea4588a0d0b4de7573f5679d8a0250408a92572802ce3b301b9
@@ -15,7 +16,7 @@ IMG="eugr/spark-vllm:latest"   # sha256:e557b53d549fdea4588a0d0b4de7573f5679d8a0
 cat > /tmp/vllm_inner.sh <<EOS
 #!/bin/bash
 export VLLM_MARLIN_USE_ATOMIC_ADD=1
-exec vllm serve /models/qwen36-35b-nvfp4 --served-model-name m --host 0.0.0.0 --port $PORT \\
+exec vllm serve /models/$MODEL --served-model-name m --host 0.0.0.0 --port $PORT \\
   --tensor-parallel-size 1 --kv-cache-dtype fp8 --attention-backend flashinfer \\
   --gpu-memory-utilization 0.7 --max-model-len $MML --max-num-seqs 64 \\
   --max-num-batched-tokens 8192 --enable-chunked-prefill --async-scheduling \\
