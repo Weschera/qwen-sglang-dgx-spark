@@ -87,7 +87,7 @@ This is **not a misconfiguration — it's a known, upstream-tracked gap in vLLM'
 - `--max-num-batched-tokens` raised (16384) + `--async-scheduling` **off**
 - The setting that *would* fix it (`--max-num-partial-prefills > 1`) — throws `NotImplementedError`
 
-**Verified across builds:** the gate is present in both the pinned digest we benchmarked (`e557b53…`, nightly-20260709) **and the latest nightly** at time of writing (`nightly-20260711`, vLLM `0.23.1rc1.dev…d20260711`) — same `_raise_unsupported_error` in `arg_utils.py`. Updating vLLM does not change it, because [#14003](https://github.com/vllm-project/vllm/issues/14003) is still open upstream.
+**Verified across the vLLM builds that run on a DGX Spark:** the gate is present in both the pinned digest we benchmarked (`e557b53…`, nightly-20260709) **and the latest Spark image** at time of writing (`nightly-20260711`, vLLM `0.23.1rc1.dev…d20260711`) — same `_raise_unsupported_error` in `arg_utils.py`. Mainline **v0.25.0** (released 2026-07-11) does not close it either: its notes don't mention concurrent partial prefill, and [#14003](https://github.com/vllm-project/vllm/issues/14003) is still open. (v0.25.0's "Model Runner V2" is a faster *execution* core — it doesn't change how concurrent prefills are *scheduled* — and it has no GB10 build yet, so the Spark image remains on 0.23.1.)
 
 **Scope:** specific to vLLM's **V1 engine** and the many-agent / long-context regime. When [#14003](https://github.com/vllm-project/vllm/issues/14003) lands, this should close. Reproduce: [`serve-vllm.sh`](serve-vllm.sh).
 
