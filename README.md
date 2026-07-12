@@ -87,7 +87,12 @@ This is **not a misconfiguration — it's a known, upstream-tracked gap in vLLM'
 - `--max-num-batched-tokens` raised (16384) + `--async-scheduling` **off**
 - The setting that *would* fix it (`--max-num-partial-prefills > 1`) — throws `NotImplementedError`
 
-**Verified across the vLLM builds that run on a DGX Spark:** the gate is present in both the pinned digest we benchmarked (`e557b53…`, nightly-20260709) **and the latest Spark image** at time of writing (`nightly-20260711`, vLLM `0.23.1rc1.dev…d20260711`) — same `_raise_unsupported_error` in `arg_utils.py`. Mainline **v0.25.0** (released 2026-07-11) does not close it either: its notes don't mention concurrent partial prefill, and [#14003](https://github.com/vllm-project/vllm/issues/14003) is still open. (v0.25.0's "Model Runner V2" is a faster *execution* core — it doesn't change how concurrent prefills are *scheduled* — and it has no GB10 build yet, so the Spark image remains on 0.23.1.)
+**Verified across every vLLM that runs on a DGX Spark — including v0.25.0, empirically:**
+- Community Spark image (vLLM **0.23.1**, digest `e557b53…`): gate present in source; benchmarked (numbers above) and reproduced from this repo's scripts.
+- Latest Spark nightly (`nightly-20260711`): same gate.
+- **vLLM v0.25.0 on GB10** (via the [NNNtrance community build](https://github.com/NNNtrance/Qwen3.6-35B-A3B-NVFP4-Fast-DGX-Spark), which pins a digest of `vllm/vllm-openai` with sm_121 kernels): same gate in source, **and we ran the 64k sweep on it — c2/8/32 = 26.4 / 29.3 / 30.6 tok/s, TTFT@c32 269s. Identical collapse (0.23.1 was 26.8 / 30.0 / 31.3).** Upgrading vLLM does not change this; [#14003](https://github.com/vllm-project/vllm/issues/14003) is still open.
+- The **tagged official image** (`vllm/vllm-openai:v0.25.0-aarch64-cu129`) does not run on GB10 at all (cu129 vs GB10's CUDA 13 — dies on `libnvrtc.so.13`).
+- (v0.25.0's "Model Runner V2" is a faster *execution* core for dense models — it doesn't change concurrent-prefill *scheduling*, and our model is the MoE.)
 
 **Scope:** specific to vLLM's **V1 engine** and the many-agent / long-context regime. When [#14003](https://github.com/vllm-project/vllm/issues/14003) lands, this should close. Reproduce: [`serve-vllm.sh`](serve-vllm.sh).
 
