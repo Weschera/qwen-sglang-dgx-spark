@@ -1,0 +1,19 @@
+engine,context,agents,agg_decode_tps,ttft_p50_ms,completed,notes
+sglang-v0.5.15,64k,2,89.4,472,2/2,
+sglang-v0.5.15,64k,4,178.0,690,4/4,
+sglang-v0.5.15,64k,8,240.7,1395,8/8,
+sglang-v0.5.15,64k,16,297.7,2908,16/16,
+sglang-v0.5.15,64k,32,324.4,5958,32/32,
+sglang-v0.5.15,64k,64,331.8,11921,64/64,
+vllm-spark,64k,2,26.8,16628,2/2,
+vllm-spark,64k,4,29.0,46839,4/4,
+vllm-spark,64k,8,30.0,77608,8/8,
+vllm-spark,64k,16,30.7,138479,16/16,
+vllm-spark,64k,32,31.3,263263,32/32,
+vllm-spark,64k,64,31.4,453936,57/64,7 timed out
+sglang-v0.5.15,256k,2,85.3,1806,2/2,
+sglang-v0.5.15,256k,4,109.3,3995,4/4,
+sglang-v0.5.15,256k,8,133.8,8190,8/8,
+vllm-spark,256k,2,3.7,133946,2/2,
+vllm-spark,256k,4,3.7,401140,4/4,
+vllm-spark,256k,8,3.3,400422,6/8,2 timed out
