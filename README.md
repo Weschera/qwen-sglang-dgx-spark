@@ -87,6 +87,8 @@ This is **not a misconfiguration — it's a known, upstream-tracked gap in vLLM'
 - `--max-num-batched-tokens` raised (16384) + `--async-scheduling` **off**
 - The setting that *would* fix it (`--max-num-partial-prefills > 1`) — throws `NotImplementedError`
 
+**Verified across builds:** the gate is present in both the pinned digest we benchmarked (`e557b53…`, nightly-20260709) **and the latest nightly** at time of writing (`nightly-20260711`, vLLM `0.23.1rc1.dev…d20260711`) — same `_raise_unsupported_error` in `arg_utils.py`. Updating vLLM does not change it, because [#14003](https://github.com/vllm-project/vllm/issues/14003) is still open upstream.
+
 **Scope:** specific to vLLM's **V1 engine** and the many-agent / long-context regime. When [#14003](https://github.com/vllm-project/vllm/issues/14003) lands, this should close. Reproduce: [`serve-vllm.sh`](serve-vllm.sh).
 
 ### Pinned images
