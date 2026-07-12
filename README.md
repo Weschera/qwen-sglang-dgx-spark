@@ -77,7 +77,17 @@ At 64k / 64 agents, SGLang finishes all 64 responses before vLLM finishes one. A
 
 **Root cause** (`vllm/config/scheduler.py`): `max_num_partial_prefills` and `max_long_partial_prefills` default to **1** and are hard-gated — set either ≠1 and vLLM raises `NotImplementedError: Concurrent Partial Prefill is not supported`. So vLLM prefills long requests **one at a time** (median time-to-first-token with 64 agents: ~9 min). SGLang interleaves them by default.
 
-**Scope:** this is specific to the vLLM image tag below and to the many-agent / long-context regime. Mainline vLLM may implement concurrent partial prefill later, which should close the gap. Recipe + configs to reproduce the comparison: [`serve-vllm.sh`](serve-vllm.sh).
+This is **not a misconfiguration — it's a known, upstream-tracked gap in vLLM's V1 engine** (the current default, and the only one serving NVFP4+MTP on GB10):
+- [vLLM #14003](https://github.com/vllm-project/vllm/issues/14003) — *"Implement Concurrent Partial Prefills In V1 Engine"* — **open** feature request
+- [vLLM #39737](https://github.com/vllm-project/vllm/issues/39737) — *"max-num-partial-prefills fails on V1 engine start"* — the same `NotImplementedError`, reported independently
+- The feature exists in the legacy **V0** engine ([PR #10235](https://github.com/vllm-project/vllm/pull/10235)), which won't serve this stack on GB10
+
+**What we ruled out** (all still ~31 tok/s @ 64k/32 agents, so it's none of these):
+- MTP spec decode **off**
+- `--max-num-batched-tokens` raised (16384) + `--async-scheduling` **off**
+- The setting that *would* fix it (`--max-num-partial-prefills > 1`) — throws `NotImplementedError`
+
+**Scope:** specific to vLLM's **V1 engine** and the many-agent / long-context regime. When [#14003](https://github.com/vllm-project/vllm/issues/14003) lands, this should close. Reproduce: [`serve-vllm.sh`](serve-vllm.sh).
 
 ### Pinned images
 | Engine | Image | Digest |
