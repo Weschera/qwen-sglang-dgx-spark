@@ -2,7 +2,9 @@
 
 A working recipe for serving **Qwen3.6 NVFP4 + MTP** — both the **27B** (dense) and **35B-A3B** (MoE) — on a single **NVIDIA DGX Spark (GB10)** with **SGLang v0.5.15**. Same launch command for either model; just point `--model-path` at the checkpoint you want. The recipe is tuned for the case that matters on a desk-sized box: **many agents at long context**.
 
-The commands below use the 35B; swap `qwen36-35b-nvfp4` → `qwen36-27b-nvfp4` for the 27B (smaller weights, so it leaves more room for KV / more concurrent agents, but decodes slower per token since it's dense, not MoE). **The measured long-context multi-agent numbers in this repo are for the 35B MoE** — the 27B deploys identically but was benchmarked separately (see [spark-bench](https://github.com/Weschera/spark-bench)).
+The commands below use the 35B; swap `qwen36-35b-nvfp4` → `qwen36-27b-nvfp4` for the 27B (smaller weights, so it leaves more room for KV / more concurrent agents, but decodes slower per token since it's dense, not MoE).
+
+> **Scope, up front:** the **deploy recipe (this whole guide) works for both the 27B and the 35B** — same command, just change `--model-path`. **Every benchmark and comparison number in this repo was measured on the 35B MoE.** The 27B deploys identically; we didn't run the long-context agent sweep on it, so no 27B numbers are claimed here.
 
 SGLang v0.5.15 (shipped 2026-07-10) is the first release with GB10-native Qwen support — earlier images couldn't load Qwen NVFP4 at all. This repo documents the config that works, and — [secondarily](#why-sglang-here-the-vllm-comparison) — why we picked it over vLLM for this workload.
 
@@ -62,9 +64,9 @@ At 64k, **all 64 agents complete** with first-token ~6s at 32 agents. At the nat
 
 ---
 
-## Why SGLang here — the vLLM comparison
+## Why SGLang here — the vLLM comparison (measured on the 35B MoE)
 
-This is the *secondary* point, but it's why the recipe uses SGLang. We ran the identical NVFP4 weights on both engines. **At short context / single stream, vLLM is equal-or-faster** (it won our 1k playground, 450 vs 427 tok/s @ 16 agents). But for **many agents at long context**, the standard Spark vLLM image collapses:
+This is the *secondary* point, but it's why the recipe uses SGLang. **All numbers in this section are the Qwen3.6-35B-A3B MoE** (the deploy recipe above works for both models; only the 35B was benchmarked). We ran the identical NVFP4 weights on both engines. **At short context / single stream, vLLM is equal-or-faster** (it won our 1k playground, 450 vs 427 tok/s @ 16 agents). But for **many agents at long context**, the standard Spark vLLM image collapses:
 
 | 64k context, aggregate tok/s | SGLang v0.5.15 | vLLM (Spark image) |
 |---:|---:|---:|
