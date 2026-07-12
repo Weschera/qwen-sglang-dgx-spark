@@ -12,7 +12,7 @@ SGLang v0.5.15 (shipped 2026-07-10) is the first release with GB10-native Qwen s
 
 ## Quick start
 
-**Requirements:** 1× DGX Spark (GB10, 121 GB unified), Docker with GPU, the `Qwen3.6-35B-A3B` NVFP4 weights at `/path/to/models/qwen36-35b-nvfp4`.
+**Requirements: exactly ONE DGX Spark.** Everything in this repo — the deploy, all 64 concurrent agents, both context sizes — runs on a **single** DGX Spark (GB10, 121 GB unified). No cluster, no multi-node, nothing to network together. You also need Docker with GPU access and the `Qwen3.6-35B-A3B` NVFP4 weights at `/path/to/models/qwen36-35b-nvfp4`.
 
 ```bash
 # 64k context, up to 64 concurrent agents
