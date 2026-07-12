@@ -16,7 +16,7 @@ docker run -d --name sgl --gpus all --network host --ipc host --shm-size 8gb \
   -v "$MODELS":/models:ro \
   "$IMG" \
   python3 -m sglang.launch_server \
-    --model-path /models/$MODEL --served-model-name m \
+    --model-path /models/$MODEL --served-model-name qwen \
     --host 0.0.0.0 --port "$PORT" --tp 1 --trust-remote-code \
     --mem-fraction-static 0.75 --context-length "$CTX" --max-running-requests 64 \
     --tool-call-parser qwen3_coder --reasoning-parser qwen3 \
